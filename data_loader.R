@@ -3,38 +3,34 @@ load_power_data <- function() {
     stop("Data file 'household_power_consumption.txt' not found in current directory")
   }
   
-  if (!require(data.table)) {
-    install.packages("data.table")
-    library(data.table)
-  }
+  cat("Reading data...\n")
   
-  cat("Reading data... This may take a moment.\n")
-  
-  power_data <- fread(
+  # Read the data using base R
+  power_data <- read.table(
     "household_power_consumption.txt",
-    na.strings = "?",
+    header = TRUE,
     sep = ";",
-    header = TRUE
+    na.strings = "?",
+    stringsAsFactors = FALSE,
+    colClasses = c(rep("character", 2), rep("numeric", 7))
   )
   
-  cat("Data loaded. Filtering dates...\n")
+  cat("Filtering dates...\n")
+  
+  # Convert Date column
   power_data$Date <- as.Date(power_data$Date, "%d/%m/%Y")
   
-  filtered_data <- power_data[Date %in% as.Date(c("2007-02-01", "2007-02-02"))]
+  # Filter for Feb 1-2, 2007
+  filtered_data <- subset(power_data, 
+                          Date == as.Date("2007-02-01") | Date == as.Date("2007-02-02"))
   
-  filtered_data$DateTime <- as.POSIXct(
-    paste(filtered_data$Date, filtered_data$Time), 
-    format = "%Y-%m-%d %H:%M:%S"
-  )
+  cat("Creating DateTime column...\n")
   
-  numeric_columns <- c("Global_active_power", "Global_reactive_power", "Voltage", 
-                       "Global_intensity", "Sub_metering_1", "Sub_metering_2", "Sub_metering_3")
+  datetime_string <- paste(as.character(filtered_data$Date), filtered_data$Time)
+  filtered_data$DateTime <- as.POSIXct(datetime_string)
   
-  for (col in numeric_columns) {
-    filtered_data[[col]] <- as.numeric(filtered_data[[col]])
-  }
   
-  cat("Data preparation complete. Found", nrow(filtered_data), "rows of data.\n")
+  cat("Data preparation complete. Found", nrow(filtered_data), "rows.\n")
   
   return(filtered_data)
 }
